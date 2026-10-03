@@ -15,7 +15,14 @@
       --bg: #12151b; --card: #1b2029; --text: #e8ebf0; --muted: #9aa3b2; --line: #2b323e;
       --accent: #6b9bf0; --good: #3fbf8a; --bad: #ef6b6b; --warn: #e0a83a;
       --c1: #6b9bf0; --c2: #3fbf8a; --c3: #e0a83a; --c4: #a989ea; --c5: #ef6b6b; --c6: #9aa3b2;
+      color-scheme: dark;
     }
+  }
+  :root[data-theme="dark"] {
+      --bg: #12151b; --card: #1b2029; --text: #e8ebf0; --muted: #9aa3b2; --line: #2b323e;
+      --accent: #6b9bf0; --good: #3fbf8a; --bad: #ef6b6b; --warn: #e0a83a;
+      --c1: #6b9bf0; --c2: #3fbf8a; --c3: #e0a83a; --c4: #a989ea; --c5: #ef6b6b; --c6: #9aa3b2;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
@@ -92,6 +99,7 @@
         <button id="copyPrev" class="ghost" type="button">Salin dari bulan lalu</button>
         <button id="reset" class="ghost" type="button">Kosongkan bulan ini</button>
       </div>
+      <div class="sub" id="msg" role="status" style="margin-top:8px"></div>
     </div>
 
     <div class="card">
@@ -134,7 +142,8 @@
       <h2>Riwayat Bulanan</h2>
       <div class="scroll"><table id="hist"></table></div>
       <div class="actions">
-        <button id="export" class="ghost" type="button">Ekspor CSV</button>
+        <button id="export" class="ghost" type="button">Salin data (CSV)</button>
+        <span class="sub" id="expMsg" role="status"></span>
       </div>
     </div>
   </section>
@@ -210,23 +219,32 @@ $('efNow').addEventListener('input', e => {
   e.target.value = state.emergency ? state.emergency.toLocaleString('id-ID') : '';
   save(); render();
 });
-$('bulan').addEventListener('change', e => { if (e.target.value) { current = e.target.value; fillForm(); render(); } });
+$('bulan').addEventListener('change', e => { if (e.target.value) { current = e.target.value; $('msg').textContent = ''; fillForm(); render(); } });
 $('copyPrev').addEventListener('click', () => {
   const prev = state.months[shiftMonth(current, -1)];
-  if (!prev) { alert('Belum ada data bulan lalu.'); return; }
+  if (!prev) { $('msg').textContent = 'Belum ada data bulan lalu.'; return; }
   state.months[current] = Object.assign({}, prev); save(); fillForm(); render();
 });
+let resetArmed = false;
 $('reset').addEventListener('click', () => {
-  if (!confirm('Kosongkan semua data bulan ini?')) return;
+  if (!resetArmed) {
+    resetArmed = true; $('reset').textContent = 'Klik lagi untuk konfirmasi';
+    setTimeout(() => { resetArmed = false; $('reset').textContent = 'Kosongkan bulan ini'; }, 4000);
+    return;
+  }
+  resetArmed = false; $('reset').textContent = 'Kosongkan bulan ini';
   delete state.months[current]; save(); fillForm(); render();
+  $('msg').textContent = 'Data bulan ini sudah dikosongkan.';
 });
 $('export').addEventListener('click', () => {
   const keys = Object.keys(state.months).sort();
   const cols = [...INCOME, ...EXPENSE];
   const rows = [['bulan', ...cols.map(c => c.label), 'total_pemasukan', 'total_pengeluaran', 'sisa']];
   keys.forEach(k => { const t = totals(k); rows.push([k, ...cols.map(c => t.m[c.key] || 0), t.inc, t.exp, t.save]); });
-  const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'keuangan.csv'; a.click();
+  const csv = rows.map(r => r.join(',')).join('\n');
+  navigator.clipboard.writeText(csv)
+    .then(() => { $('expMsg').textContent = 'Tersalin. Tempel ke Excel/Google Sheets sebagai cadangan.'; })
+    .catch(() => { $('expMsg').textContent = 'Gagal menyalin. Coba lagi di browser lain.'; });
 });
 
 function render() {
