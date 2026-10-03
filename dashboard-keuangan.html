@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Keuangan Pribadi</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2430; --muted: #6b7380; --line: #e4e7ec;
+    --accent: #2f6fde; --good: #1f9d6b; --bad: #d64545; --warn: #c98a12;
+    --c1: #2f6fde; --c2: #1f9d6b; --c3: #c98a12; --c4: #8a5cd6; --c5: #d64545; --c6: #6b7380;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --card: #1b2029; --text: #e8ebf0; --muted: #9aa3b2; --line: #2b323e;
+      --accent: #6b9bf0; --good: #3fbf8a; --bad: #ef6b6b; --warn: #e0a83a;
+      --c1: #6b9bf0; --c2: #3fbf8a; --c3: #e0a83a; --c4: #a989ea; --c5: #ef6b6b; --c6: #9aa3b2;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  input, select, button { font: inherit; color: var(--text); background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  button { cursor: pointer; background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+  .grid { display: grid; gap: 16px; }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 16px; }
+  .two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+  .kpi .label { color: var(--muted); font-size: 13px; }
+  .kpi .val { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .kpi .note { font-size: 12px; color: var(--muted); }
+  .good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  .form-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .form-row label { font-size: 14px; }
+  .form-row input { width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
+  .group-title { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 12px 0 8px; }
+  .bar-row { display: grid; grid-template-columns: 110px 1fr 110px; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; }
+  .bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: 5px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .tips li { margin-bottom: 8px; }
+  .tips { padding-left: 18px; margin: 0; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  .scroll { overflow-x: auto; }
+  @media (max-width: 520px) {
+    .form-row { grid-template-columns: 1fr 130px; }
+    .bar-row { grid-template-columns: 90px 1fr 90px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Dashboard Keuangan Pribadi</h1>
+      <div class="sub">Catat pemasukan & pengeluaran tiap bulan. Data tersimpan di browser ini.</div>
+    </div>
+    <div>
+      <label class="sub" for="bulan">Bulan&nbsp;</label>
+      <input type="month" id="bulan">
+    </div>
+  </header>
+
+  <section class="grid kpis">
+    <div class="card kpi"><div class="label">Total Pemasukan</div><div class="val" id="kIn">-</div><div class="note" id="kInNote"></div></div>
+    <div class="card kpi"><div class="label">Total Pengeluaran</div><div class="val" id="kOut">-</div><div class="note" id="kOutNote"></div></div>
+    <div class="card kpi"><div class="label">Sisa / Tabungan</div><div class="val" id="kSave">-</div><div class="note" id="kSaveNote"></div></div>
+    <div class="card kpi"><div class="label">Rasio Tabungan</div><div class="val" id="kRate">-</div><div class="note">Target sehat: ≥ 20%</div></div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Input Bulan Ini</h2>
+      <div class="group-title">Pemasukan</div>
+      <div id="incomeForm"></div>
+      <div class="group-title">Pengeluaran</div>
+      <div id="expenseForm"></div>
+      <div class="actions">
+        <button id="copyPrev" class="ghost" type="button">Salin dari bulan lalu</button>
+        <button id="reset" class="ghost" type="button">Kosongkan bulan ini</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Ke Mana Uangmu Pergi?</h2>
+      <div id="expBars"></div>
+      <h2 style="margin-top:20px">Aturan 50/30/20</h2>
+      <div class="sub" style="margin-bottom:8px">Kebutuhan (makan, transportasi, internet) maks 50% · Keinginan (hiburan, lain-lain) maks 30% · Tabungan min 20%</div>
+      <div id="rule"></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Tren 6 Bulan Terakhir</h2>
+      <div id="trend"></div>
+      <div class="legend">
+        <span><i style="background:var(--c2)"></i>Pemasukan</span>
+        <span><i style="background:var(--c5)"></i>Pengeluaran</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Catatan Mentor 💬</h2>
+      <ul class="tips" id="tips"></ul>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Target Dana Darurat</h2>
+      <div class="sub">Idealnya 6× pengeluaran bulanan (lajang: 3–6×).</div>
+      <div class="form-row" style="margin-top:12px">
+        <label for="efNow">Dana darurat terkumpul</label>
+        <input id="efNow" inputmode="numeric" placeholder="0">
+      </div>
+      <div id="efOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>Riwayat Bulanan</h2>
+      <div class="scroll"><table id="hist"></table></div>
+      <div class="actions">
+        <button id="export" class="ghost" type="button">Ekspor CSV</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const INCOME = [
+  { key: 'gaji', label: 'Gaji' },
+  { key: 'sidejob', label: 'Side job' },
+];
+const EXPENSE = [
+  { key: 'makan', label: 'Makan', type: 'need', color: 'var(--c1)' },
+  { key: 'transport', label: 'Transportasi', type: 'need', color: 'var(--c2)' },
+  { key: 'internet', label: 'Internet', type: 'need', color: 'var(--c3)' },
+  { key: 'hiburan', label: 'Hiburan', type: 'want', color: 'var(--c4)' },
+  { key: 'lainnya', label: 'Lain-lain', type: 'want', color: 'var(--c6)' },
+];
+const STORE_KEY = 'dashboard-keuangan-v1';
+
+let state = { months: {}, emergency: 0 };
+try { const raw = localStorage.getItem(STORE_KEY); if (raw) state = Object.assign(state, JSON.parse(raw)); } catch (e) {}
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+
+const $ = id => document.getElementById(id);
+const rp = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+const pct = n => (isFinite(n) ? (n * 100).toFixed(0) : 0) + '%';
+const parseNum = s => Number(String(s).replace(/[^\d]/g, '')) || 0;
+const monthKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+const monthName = k => { const [y, m] = k.split('-'); return new Date(y, m - 1).toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }); };
+const shiftMonth = (k, n) => { const [y, m] = k.split('-').map(Number); return monthKey(new Date(y, m - 1 + n)); };
+
+let current = monthKey(new Date());
+$('bulan').value = current;
+
+function getMonth(k) { return state.months[k] || {}; }
+function totals(k) {
+  const m = getMonth(k);
+  const inc = INCOME.reduce((s, f) => s + (m[f.key] || 0), 0);
+  const exp = EXPENSE.reduce((s, f) => s + (m[f.key] || 0), 0);
+  const need = EXPENSE.filter(f => f.type === 'need').reduce((s, f) => s + (m[f.key] || 0), 0);
+  return { m, inc, exp, need, want: exp - need, save: inc - exp };
+}
+
+function buildForm(el, fields) {
+  el.innerHTML = fields.map(f => `
+    <div class="form-row">
+      <label for="f_${f.key}">${f.label}</label>
+      <input id="f_${f.key}" data-key="${f.key}" inputmode="numeric" placeholder="0">
+    </div>`).join('');
+}
+buildForm($('incomeForm'), INCOME);
+buildForm($('expenseForm'), EXPENSE);
+
+function fillForm() {
+  const m = getMonth(current);
+  [...INCOME, ...EXPENSE].forEach(f => {
+    const v = m[f.key];
+    $('f_' + f.key).value = v ? v.toLocaleString('id-ID') : '';
+  });
+  $('efNow').value = state.emergency ? state.emergency.toLocaleString('id-ID') : '';
+}
+
+document.querySelectorAll('[data-key]').forEach(inp => {
+  inp.addEventListener('input', () => {
+    const v = parseNum(inp.value);
+    state.months[current] = Object.assign({}, getMonth(current), { [inp.dataset.key]: v });
+    inp.value = v ? v.toLocaleString('id-ID') : '';
+    save(); render();
+  });
+});
+$('efNow').addEventListener('input', e => {
+  state.emergency = parseNum(e.target.value);
+  e.target.value = state.emergency ? state.emergency.toLocaleString('id-ID') : '';
+  save(); render();
+});
+$('bulan').addEventListener('change', e => { if (e.target.value) { current = e.target.value; fillForm(); render(); } });
+$('copyPrev').addEventListener('click', () => {
+  const prev = state.months[shiftMonth(current, -1)];
+  if (!prev) { alert('Belum ada data bulan lalu.'); return; }
+  state.months[current] = Object.assign({}, prev); save(); fillForm(); render();
+});
+$('reset').addEventListener('click', () => {
+  if (!confirm('Kosongkan semua data bulan ini?')) return;
+  delete state.months[current]; save(); fillForm(); render();
+});
+$('export').addEventListener('click', () => {
+  const keys = Object.keys(state.months).sort();
+  const cols = [...INCOME, ...EXPENSE];
+  const rows = [['bulan', ...cols.map(c => c.label), 'total_pemasukan', 'total_pengeluaran', 'sisa']];
+  keys.forEach(k => { const t = totals(k); rows.push([k, ...cols.map(c => t.m[c.key] || 0), t.inc, t.exp, t.save]); });
+  const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'keuangan.csv'; a.click();
+});
+
+function render() {
+  const t = totals(current);
+  const prev = totals(shiftMonth(current, -1));
+  const rate = t.inc ? t.save / t.inc : 0;
+
+  $('kIn').textContent = rp(t.inc);
+  $('kInNote').textContent = t.inc ? `Gaji ${pct((t.m.gaji || 0) / t.inc)} · Side job ${pct((t.m.sidejob || 0) / t.inc)}` : 'Isi pemasukan di bawah';
+  $('kOut').textContent = rp(t.exp);
+  $('kOutNote').textContent = prev.exp ? `${t.exp >= prev.exp ? '▲' : '▼'} ${rp(Math.abs(t.exp - prev.exp))} vs bulan lalu` : '';
+  $('kSave').textContent = rp(t.save);
+  $('kSave').className = 'val ' + (t.save < 0 ? 'bad' : 'good');
+  $('kSaveNote').textContent = t.save < 0 ? 'Defisit! Pengeluaran > pemasukan' : 'Pindahkan ke rekening tabungan';
+  $('kRate').textContent = pct(rate);
+  $('kRate').className = 'val ' + (rate >= 0.2 ? 'good' : rate >= 0.1 ? 'warn' : 'bad');
+
+  // Rincian pengeluaran
+  const maxExp = Math.max(1, ...EXPENSE.map(f => t.m[f.key] || 0));
+  $('expBars').innerHTML = EXPENSE.map(f => {
+    const v = t.m[f.key] || 0;
+    return `<div class="bar-row"><span>${f.label}</span>
+      <div class="bar"><span style="width:${(v / maxExp) * 100}%;background:${f.color}"></span></div>
+      <span class="num">${rp(v)}<br><span class="sub">${t.exp ? pct(v / t.exp) : '0%'}</span></span></div>`;
+  }).join('');
+
+  // 50/30/20
+  const rules = [
+    { label: 'Kebutuhan', val: t.need, limit: 0.5, max: true, color: 'var(--c1)' },
+    { label: 'Keinginan', val: t.want, limit: 0.3, max: true, color: 'var(--c4)' },
+    { label: 'Tabungan', val: Math.max(0, t.save), limit: 0.2, max: false, color: 'var(--c2)' },
+  ];
+  $('rule').innerHTML = rules.map(r => {
+    const share = t.inc ? r.val / t.inc : 0;
+    const ok = r.max ? share <= r.limit : share >= r.limit;
+    return `<div class="bar-row"><span>${r.label}</span>
+      <div class="bar"><span style="width:${Math.min(100, share * 100)}%;background:${r.color}"></span></div>
+      <span class="num ${t.inc ? (ok ? 'good' : 'bad') : ''}">${pct(share)} <span class="sub">/ ${pct(r.limit)}</span></span></div>`;
+  }).join('');
+
+  renderTrend();
+  renderTips(t, prev, rate);
+  renderEmergency();
+  renderHistory();
+}
+
+function renderTrend() {
+  const keys = Array.from({ length: 6 }, (_, i) => shiftMonth(current, i - 5));
+  const data = keys.map(totals);
+  const max = Math.max(1, ...data.map(d => Math.max(d.inc, d.exp)));
+  const W = 480, H = 200, pad = 24, gw = (W - pad) / keys.length, bw = gw * 0.32;
+  let svg = `<svg viewBox="0 0 ${W} ${H + 20}" width="100%" role="img" aria-label="Tren pemasukan dan pengeluaran">`;
+  svg += `<line x1="${pad}" y1="${H}" x2="${W}" y2="${H}" stroke="var(--line)"/>`;
+  data.forEach((d, i) => {
+    const x = pad + i * gw + gw * 0.15;
+    const hi = (d.inc / max) * (H - 10), he = (d.exp / max) * (H - 10);
+    svg += `<rect x="${x}" y="${H - hi}" width="${bw}" height="${hi}" rx="3" fill="var(--c2)"><title>${monthName(keys[i])} pemasukan: ${rp(d.inc)}</title></rect>`;
+    svg += `<rect x="${x + bw + 2}" y="${H - he}" width="${bw}" height="${he}" rx="3" fill="var(--c5)"><title>${monthName(keys[i])} pengeluaran: ${rp(d.exp)}</title></rect>`;
+    svg += `<text x="${x + bw}" y="${H + 15}" text-anchor="middle">${monthName(keys[i])}</text>`;
+  });
+  $('trend').innerHTML = svg + '</svg>';
+}
+
+function renderTips(t, prev, rate) {
+  const tips = [];
+  if (!t.inc) {
+    tips.push('Mulai dengan mengisi gaji dan penghasilan side job bulan ini. Konsisten mencatat adalah langkah pertama kebebasan finansial.');
+  } else {
+    if (t.save < 0) tips.push(`<b class="bad">Kamu defisit ${rp(-t.save)}.</b> Prioritas utama: potong pengeluaran keinginan (hiburan/lain-lain) sebelum menyentuh tabungan atau berutang.`);
+    else if (rate < 0.1) tips.push(`Rasio tabunganmu baru ${pct(rate)}. Coba "bayar diri sendiri dulu": langsung sisihkan minimal 10–20% begitu gajian, sebelum belanja.`);
+    else if (rate < 0.2) tips.push(`Bagus, kamu menabung ${pct(rate)}. Naikkan pelan-pelan ke 20% — misalnya +2% tiap bulan.`);
+    else tips.push(`Mantap! Rasio tabungan ${pct(rate)} sudah sehat. Setelah dana darurat penuh, mulai investasi rutin (reksa dana pasar uang → indeks).`);
+
+    const sj = t.m.sidejob || 0;
+    if (sj > 0) tips.push(`Side job menyumbang ${rp(sj)}. Idealnya penghasilan tambahan ini <b>100% ditabung/diinvestasikan</b>, hidup cukup dari gaji saja.`);
+    else tips.push('Belum ada pemasukan side job bulan ini. Penghasilan kedua mempercepat target tabunganmu.');
+
+    const makanShare = t.inc ? (t.m.makan || 0) / t.inc : 0;
+    if (makanShare > 0.3) tips.push(`Biaya makan ${pct(makanShare)} dari pemasukan — cukup tinggi. Masak sendiri / bawa bekal beberapa hari seminggu bisa hemat signifikan.`);
+    const hibShare = t.inc ? (t.m.hiburan || 0) / t.inc : 0;
+    if (hibShare > 0.1) tips.push(`Hiburan ${pct(hibShare)} dari pemasukan. Tetapkan budget hiburan tetap (mis. 5–10%) dan berhenti saat habis.`);
+    if ((t.m.lainnya || 0) > t.exp * 0.2 && t.exp) tips.push('Pos "lain-lain" besar. Coba rinci lagi ke mana uangnya — pengeluaran yang tidak tercatat jelas paling mudah bocor.');
+    if (prev.exp && t.exp > prev.exp * 1.1) tips.push(`Pengeluaran naik ${pct(t.exp / prev.exp - 1)} dibanding bulan lalu. Cek pos mana yang melonjak.`);
+  }
+  tips.push('Urutan prioritas: (1) dana darurat 3–6× pengeluaran, (2) lunasi utang konsumtif, (3) investasi jangka panjang.');
+  $('tips').innerHTML = tips.map(s => `<li>${s}</li>`).join('');
+}
+
+function renderEmergency() {
+  const keys = Object.keys(state.months).sort().slice(-3);
+  const avgExp = keys.length ? keys.reduce((s, k) => s + totals(k).exp, 0) / keys.length : 0;
+  const target = avgExp * 6, have = state.emergency || 0;
+  const prog = target ? Math.min(1, have / target) : 0;
+  const rate = Math.max(0, totals(current).save);
+  const monthsLeft = rate > 0 && target > have ? Math.ceil((target - have) / rate) : null;
+  $('efOut').innerHTML = target ? `
+    <div class="bar-row" style="grid-template-columns:1fr 60px"><div class="bar"><span style="width:${prog * 100}%;background:var(--c2)"></span></div><span class="num">${pct(prog)}</span></div>
+    <div class="sub">Target: <b>${rp(target)}</b> (6 × rata-rata pengeluaran ${rp(avgExp)})<br>
+    ${have >= target ? '<span class="good">Dana darurat sudah penuh 🎉</span>' : monthsLeft ? `Dengan sisa ${rp(rate)}/bulan, tercapai dalam ±${monthsLeft} bulan.` : 'Tambah sisa uang bulanan agar target bisa tercapai.'}</div>`
+    : '<div class="sub" style="margin-top:8px">Isi pengeluaran dulu untuk menghitung target.</div>';
+}
+
+function renderHistory() {
+  const keys = Object.keys(state.months).sort().reverse();
+  if (!keys.length) { $('hist').innerHTML = '<tr><td class="sub">Belum ada data.</td></tr>'; return; }
+  $('hist').innerHTML = '<tr><th>Bulan</th><th>Masuk</th><th>Keluar</th><th>Sisa</th></tr>' + keys.map(k => {
+    const t = totals(k);
+    return `<tr><td>${monthName(k)}</td><td>${rp(t.inc)}</td><td>${rp(t.exp)}</td><td class="${t.save < 0 ? 'bad' : 'good'}">${rp(t.save)}</td></tr>`;
+  }).join('');
+}
+
+fillForm();
+render();
+</script>
+</body>
+</html>
